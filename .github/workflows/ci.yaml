@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Install required packages
         run: |
-          sudo apt-get -q -y --no-install-recommends install podman
+          sudo apt-get -q -y --no-install-recommends install podman uidmap containers-storage slirp4netns
       - name: Pull container
         run: |
           podman pull docker.io/yoedistro/yoe-build:bookworm-x86_64
