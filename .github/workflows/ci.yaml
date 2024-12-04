@@ -19,6 +19,9 @@ jobs:
     # abort if it seems that we're rebuilding too much
     timeout-minutes: 120
     steps:
+      - name: Install required packages
+        run: |
+          sudo apt-get -q -y --no-install-recommends install podman
       - name: Checkout
         uses: actions/checkout@v4
         with:
