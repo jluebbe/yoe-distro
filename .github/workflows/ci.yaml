@@ -1,21 +1,23 @@
 name: Yoe Distro CI
 
 on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
-  push:
-    branches:
-      - master
-      - dunfell
-  pull_request:
-    branches:
-      - master
-      - dunfell
+  push: {}
+  pull_request: {}
+  # allow rebuilding without a push
+  workflow_dispatch: {}
+
 jobs:
   build:
     name: Yoe Build
-    runs-on: [self-hosted, Linux]
-    timeout-minutes: 720
+    # run on self-hosted runner for the main repo or if vars.BUILD_RUNS_ON is set
+    runs-on: >-
+      ${{
+        (vars.BUILD_RUNS_ON != '' && fromJSON(vars.BUILD_RUNS_ON)) ||
+        (github.repository == 'YoeDistro/yoe-distro' && fromJSON('["self-hosted", "forrest", "build"]')) ||
+        'ubuntu-20.04'
+      }}
+    # abort if it seems that we're rebuilding too much
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,12 +29,7 @@ jobs:
         run: |
           export DOCKER_REPO=none
           export LANG=en_US.UTF-8
-          export SSTATE_CACHE_DIR=/scratch/sstate-cache
-          echo export DOCKER_REPO=none > local.sh
-          echo export LANG=en_US.UTF-8 >> local.sh
-          echo export SSTATE_CACHE_DIR=/scratch/sstate-cache >> local.sh
           cp conf/local.conf.sample conf/local.conf
-          echo SSTATE_DIR = \"$SSTATE_CACHE_DIR\" >> conf/local.conf
           echo IMAGE_CLASSES += \"testimage testsdk\" >> conf/local.conf
           echo INHERIT += \"report-error rm_work\" >> conf/local.conf
           echo ERR_REPORT_SERVER = \"errors.yoctoproject.org\" >> conf/local.conf
@@ -47,6 +44,17 @@ jobs:
           echo XZ_MEMLIMIT = \"20%\" >> conf/local.conf
           /bin/bash -c "sed -i -e 's/PACKAGE_FEED_URI.*$//' conf/site.conf"
           /bin/bash -c "sed -i -e 's/SDK_UPDATE_URL.*$//' conf/site.conf"
+      - name: Initialize auto.conf
+        run: |
+          if [ -f ~/.yocto/auto.conf ]; then
+            cp ~/.yocto/auto.conf conf/
+          else
+            echo 'SSTATE_MIRRORS = "file://.* https://github-runner.pengutronix.de/sstate-cache/PATH"' >> conf/auto.conf
+            echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> conf/auto.conf
+            echo 'BB_HASHSERVE = ""' >> conf/auto.conf
+            echo 'OPKGBUILDCMD = "opkg-build -Z gzip -a -1n"' >> conf/auto.conf
+            echo 'INHERIT += "rm_work"' >> conf/auto.conf
+          fi
       - name: Build Image
         run: |
           /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-kiosk-image"
