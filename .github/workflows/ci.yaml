@@ -22,6 +22,9 @@ jobs:
       - name: Install required packages
         run: |
           sudo apt-get -q -y --no-install-recommends install podman
+      - name: Pull container
+        run: |
+          podman pull docker.io/yoedistro/yoe-build:bookworm-x86_64
       - name: Checkout
         uses: actions/checkout@v4
         with:
