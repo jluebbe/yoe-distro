@@ -48,6 +48,7 @@ jobs:
           echo ZSTD_THREADS = \"8\" >> conf/local.conf
           echo XZ_THREADS = \"8\" >> conf/local.conf
           echo XZ_MEMLIMIT = \"20%\" >> conf/local.conf
+          echo DL_DIR = \"$(pwd)/build/downloads\" >> conf/local.conf
           /bin/bash -c "sed -i -e 's/PACKAGE_FEED_URI.*$//' conf/site.conf"
           /bin/bash -c "sed -i -e 's/SDK_UPDATE_URL.*$//' conf/site.conf"
       - name: Check config
@@ -63,7 +64,13 @@ jobs:
             echo 'BB_HASHSERVE = ""' >> conf/auto.conf
             echo 'OPKGBUILDCMD = "opkg-build -Z gzip -a -1n"' >> conf/auto.conf
             echo 'INHERIT += "rm_work"' >> conf/auto.conf
-          fi
+          fi 
+          # Yoe's ./envsetup.sh overwrites the autobuild config
+          cat conf/auto.conf
+          cat conf/auto.conf >> conf/local.conf
+          rm conf/auto.conf
+          echo "=== local.conf ==="
+          cat conf/local.conf
       - name: Build Image
         run: |
           /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-kiosk-image"
