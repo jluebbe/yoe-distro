@@ -33,6 +33,7 @@ jobs:
            git submodule update --init
       - name: Setup
         run: |
+          sudo ln -f -s bash /bin/sh
           echo export DOCKER_REPO=none > local.sh
           cp conf/local.conf.sample conf/local.conf
           echo IMAGE_CLASSES += \"testimage testsdk\" >> conf/local.conf
@@ -49,6 +50,9 @@ jobs:
           echo XZ_MEMLIMIT = \"20%\" >> conf/local.conf
           /bin/bash -c "sed -i -e 's/PACKAGE_FEED_URI.*$//' conf/site.conf"
           /bin/bash -c "sed -i -e 's/SDK_UPDATE_URL.*$//' conf/site.conf"
+      - name: Check config
+        run: |
+          ls -l /bin/sh
       - name: Initialize auto.conf
         run: |
           if [ -f ~/.yocto/auto.conf ]; then
