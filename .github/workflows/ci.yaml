@@ -19,12 +19,6 @@ jobs:
     # abort if it seems that we're rebuilding too much
     timeout-minutes: 120
     steps:
-      - name: Install required packages
-        run: |
-          sudo apt-get -q -y --no-install-recommends install podman uidmap containers-storage slirp4netns
-      - name: Pull container
-        run: |
-          podman pull docker.io/yoedistro/yoe-build:bookworm-x86_64
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -39,7 +33,7 @@ jobs:
            git submodule update --init
       - name: Setup
         run: |
-          echo export DOCKER="podman" > local.sh
+          echo export DOCKER_REPO=none > local.sh
           cp conf/local.conf.sample conf/local.conf
           echo IMAGE_CLASSES += \"testimage testsdk\" >> conf/local.conf
           echo INHERIT += \"report-error rm_work\" >> conf/local.conf
