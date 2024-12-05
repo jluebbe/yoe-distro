@@ -56,15 +56,15 @@ jobs:
           ls -l /bin/sh
       - name: Initialize auto.conf
         run: |
-          if [ -f ~/.yocto/auto.conf ]; then
-            cp ~/.yocto/auto.conf conf/
-          else
-            echo 'SSTATE_MIRRORS = "file://.* https://github-runner.pengutronix.de/sstate-cache/PATH"' >> conf/auto.conf
-            echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> conf/auto.conf
-            echo 'BB_HASHSERVE = ""' >> conf/auto.conf
-            echo 'OPKGBUILDCMD = "opkg-build -Z gzip -a -1n"' >> conf/auto.conf
-            echo 'INHERIT += "rm_work"' >> conf/auto.conf
-          fi 
+          # download caching
+          echo 'INHERIT += "own-mirrors"' >> conf/auto.conf
+          echo 'SOURCE_MIRROR_URL = "http://10.0.2.2/yoe/downloads"' >> conf/auto.conf
+          echo 'BB_GENERATE_MIRROR_TARBALLS = "1"' >> conf/auto.conf
+          # sstate caching
+          echo 'SSTATE_MIRRORS = "file://.* https://github-runner.pengutronix.de/yoe/sstate-cache/PATH"' >> conf/auto.conf
+          echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> conf/auto.conf
+          echo 'BB_HASHSERVE = ""' >> conf/auto.conf
+          echo 'INHERIT += "rm_work"' >> conf/auto.conf
           # Yoe's ./envsetup.sh overwrites the autobuild config
           cat conf/auto.conf
           cat conf/auto.conf >> conf/local.conf
@@ -73,15 +73,24 @@ jobs:
           cat conf/local.conf
       - name: Build Image
         run: |
-          /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-kiosk-image"
-      - name: Test Image
+          #/bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-kiosk-image"
+          /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake core-image-minimal"
+      #- name: Test Image
+      #  run: |
+      #    export DISPLAY=":0"
+      #    echo TESTIMAGE_AUTO:qemuall = \"1\" >> conf/local.conf
+      #    /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-sdk-image"
+      #- name: Prepare results
+      #  run: |
+      #    /bin/bash -c ". ./envsetup.sh qemuarm64 && resulttool report build/tmp/log/oeqa"
+      - name: Cache Data
+        env:
+          CACHE_KEY: ${{ secrets.YOE_CACHE_KEY }}
+        if: ${{ always() && env.CACHE_KEY }}
         run: |
-          export DISPLAY=":0"
-          echo TESTIMAGE_AUTO:qemuall = \"1\" >> conf/local.conf
-          /bin/bash -c ". ./envsetup.sh qemuarm64 && bitbake yoe-sdk-image"
-      - name: Prepare results
-        run: |
-          /bin/bash -c ". ./envsetup.sh qemuarm64 && resulttool report build/tmp/log/oeqa"
-      - name: Clean shared state
-        run: |
-          /bin/bash -c ". ./envsetup.sh qemuarm64 && ./sources/poky/scripts/sstate-cache-management.py -d --remove-orphans -y "
+          mkdir -p ~/.ssh
+          echo "$CACHE_KEY" >> ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ls -l build || true
+          rsync -rvx --ignore-existing build/downloads yoe-cache: || true
+          rsync -rvx --ignore-existing build/sstate-cache yoe-cache: || true
