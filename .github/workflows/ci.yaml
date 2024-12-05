@@ -16,8 +16,6 @@ jobs:
         (github.repository == 'YoeDistro/yoe-distro' && fromJSON('["self-hosted", "forrest", "build"]')) ||
         'ubuntu-20.04'
       }}
-    # abort if it seems that we're rebuilding too much
-    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
